@@ -9,7 +9,7 @@ import RequestForm from './pages/RequestForm';
 import CalendarView from './pages/CalendarView'; 
 import Login from './pages/Login'; 
 import AnalyticsDashboard from './pages/AnalyticsDashboard'; 
-
+import Signup from './Signup';
 // REMOVED: import AssigneeCard from './components/AssigneeCard'; 
 
 // --- Layout Component ---
@@ -34,7 +34,7 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<Login />} />
-
+        <Route path="/signup" element={<Signup />} />
         {/* Dashboard Routes */}
         <Route element={<DashboardLayout />}>
           <Route path="/" element={<KanbanBoard />} />
