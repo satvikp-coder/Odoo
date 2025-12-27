@@ -77,8 +77,8 @@ const KanbanBoard = () => {
     }
 
     if (targetStage === 'Scrap' && request.stage !== 'Scrap') {
-      if (user.role !== 'Manager') {
-        alert("⛔ Only Managers can scrap equipment!");
+      if (user.role !== 'Manager' && user.role !== 'Admin') {
+        alert("⛔ Only Managers and Admins can scrap equipment!");
         return;
       }
       if(!window.confirm("⚠️ Are you sure? This will mark the equipment as UNUSABLE.")) {

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Save, Loader, Calendar } from 'lucide-react';
+import { Save, Loader, Calendar, PenTool } from 'lucide-react';
 
 const RequestForm = () => {
   const navigate = useNavigate();
@@ -18,7 +18,8 @@ const RequestForm = () => {
     priority: 'Medium',
     description: '',
     category: '',
-    team: ''
+    team: '',
+    type: typeParam === 'preventive' ? 'Preventive' : 'Corrective'
   });
 
   useEffect(() => {
@@ -62,7 +63,7 @@ const RequestForm = () => {
 
     const payload = {
       subject: formData.title,
-      type: typeParam === 'preventive' ? 'Preventive' : 'Corrective',
+      type: formData.type, 
       equipment_id: formData.equipmentId,
       scheduled_date: dateParam ? dateParam : undefined, 
     };
@@ -77,7 +78,8 @@ const RequestForm = () => {
       if (response.ok) {
         navigate('/');
       } else {
-        alert("Failed to submit request. Please try again.");
+        const errorData = await response.json();
+        alert(`Failed: ${errorData.error}`);
       }
     } catch (error) {
       console.error("Error submitting:", error);
@@ -117,6 +119,22 @@ const RequestForm = () => {
             value={formData.title}
             onChange={(e) => setFormData({...formData, title: e.target.value})}
           />
+        </div>
+
+        {/* 3. MAINTENANCE TYPE SELECTOR (Fixes the Null Violation) */}
+        <div>
+            <label className="block text-sm font-bold text-slate-700 mb-2">Maintenance Type</label>
+            <div className="relative">
+                <PenTool className="absolute left-3 top-3 text-slate-400" size={18} />
+                <select 
+                    className="w-full pl-10 pr-3 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none bg-white appearance-none"
+                    value={formData.type}
+                    onChange={(e) => setFormData({...formData, type: e.target.value})}
+                >
+                    <option value="Corrective">Corrective (Breakdown)</option>
+                    <option value="Preventive">Preventive (Scheduled)</option>
+                </select>
+            </div>
         </div>
 
         {/* SMART DROPDOWN (Auto-Fill Trigger) */}

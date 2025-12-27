@@ -43,8 +43,10 @@ const Signup = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-      <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-200 w-full max-w-md">
+    // CHANGED: bg-slate-50 -> bg-slate-900 (Matches Login)
+    <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
+      {/* CHANGED: shadow-sm border -> shadow-2xl (Matches Login depth) */}
+      <div className="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md">
         
         <div className="text-center mb-8">
           <div className="w-12 h-12 bg-purple-600 rounded-xl mx-auto flex items-center justify-center mb-4 shadow-lg shadow-purple-200">
