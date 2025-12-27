@@ -1,25 +1,48 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { AlertTriangle, Clock, User, Ban, X, FileText } from 'lucide-react';
-
-const initialData = [
-  { id: 1, subject: "Leaking Oil", equipment: "CNC Machine", stage: "New", priority: "high", tech: "Alice", scheduled: "2025-12-20", overdue: true, duration: 0 },
-  { id: 2, subject: "Screen Flicker", equipment: "Dell Monitor", stage: "In Progress", priority: "low", tech: "Bob", scheduled: "2026-01-10", overdue: false, duration: 0 },
-  { id: 3, subject: "Broken Hinge", equipment: "Office Door", stage: "Repaired", priority: "medium", tech: "Charlie", scheduled: "2025-12-28", overdue: false, duration: 2 },
-];
+import { AlertTriangle, Clock, User, Ban, X, FileText, Loader } from 'lucide-react';
 
 const KanbanBoard = () => {
-  // 1. GET CURRENT USER (New Logic)
-  const user = JSON.parse(localStorage.getItem('currentUser')) || { name: 'Guest', role: 'Viewer' };
+ 
+  const user = JSON.parse(localStorage.getItem('currentUser')) || { name: 'Guest', role: 'Viewer', id: null };
 
-  const [requests, setRequests] = useState(initialData);
+  const [requests, setRequests] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [draggedRequestId, setDraggedRequestId] = useState(null);
 
-  // 2. Get Filter from URL
   const [searchParams, setSearchParams] = useSearchParams();
   const filterName = searchParams.get('filter');
 
-  // 3. Create the filtered list
+  useEffect(() => {
+    const fetchRequests = async () => {
+      try {
+        const response = await fetch('http://localhost:3000/api/requests');
+        const data = await response.json();
+
+        // MAPPING: Convert Backend Database format to Frontend UI format
+        const formattedData = data.map(req => ({
+          id: req.id,
+          subject: req.subject,
+          equipment: req.equipment ? req.equipment.name : 'Unknown Asset', // Flatten object
+          stage: req.stage,
+          priority: 'Medium', // Default, or fetch if added to backend later
+          tech: req.technician ? req.technician.name : 'Unassigned', // Flatten object
+          scheduled: req.scheduled_date,
+          overdue: false, // specific logic can be added here
+          duration: req.duration || 0
+        }));
+
+        setRequests(formattedData);
+        setLoading(false);
+      } catch (err) {
+        console.error("Failed to fetch Kanban board:", err);
+        setLoading(false);
+      }
+    };
+
+    fetchRequests();
+  }, []);
+
   const displayRequests = filterName 
     ? requests.filter(r => r.equipment === filterName)
     : requests;
@@ -35,11 +58,10 @@ const KanbanBoard = () => {
     e.preventDefault(); 
   };
 
-  const handleDrop = (e, targetStage) => {
+  const handleDrop = async (e, targetStage) => {
     e.preventDefault();
     if (!draggedRequestId) return;
 
-    // Optional: Restrict moving items if not logged in (Business Logic)
     if (user.role === 'Viewer') {
       alert("⚠️ Viewers cannot move cards. Please login as Technician or Manager.");
       return;
@@ -48,13 +70,13 @@ const KanbanBoard = () => {
     const request = requests.find(r => r.id === draggedRequestId);
     
     let duration = request.duration;
+    
     if (targetStage === 'Repaired' && request.stage !== 'Repaired') {
       const hours = window.prompt("⏱️ How many hours did this take?");
       if (hours) duration = parseFloat(hours);
     }
 
     if (targetStage === 'Scrap' && request.stage !== 'Scrap') {
-      // Only Managers can Scrap items? (Optional logic)
       if (user.role !== 'Manager') {
         alert("⛔ Only Managers can scrap equipment!");
         return;
@@ -64,14 +86,32 @@ const KanbanBoard = () => {
       }
     }
 
-    setRequests(requests.map(req => 
+    const updatedRequests = requests.map(req => 
       req.id === draggedRequestId 
-        ? { ...req, stage: targetStage, duration: duration } 
+        ? { ...req, stage: targetStage, duration: duration, tech: (targetStage === 'In Progress' && req.tech === 'Unassigned') ? user.name : req.tech } 
         : req
-    ));
-    
+    );
+    setRequests(updatedRequests);
     setDraggedRequestId(null);
+
+
+    try {
+      await fetch(`http://localhost:3000/api/requests/${draggedRequestId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          stage: targetStage,
+          duration: duration,
+          technicianId: (targetStage === 'In Progress' && request.tech === 'Unassigned') ? user.id : undefined
+        })
+      });
+    } catch (err) {
+      console.error("Failed to update request:", err);
+      alert("Failed to save changes to server.");
+    }
   };
+
+  if (loading) return <div className="p-10 flex gap-2 items-center text-slate-500"><Loader className="animate-spin"/> Loading Board...</div>;
 
   return (
     <div className="p-2">
@@ -96,7 +136,7 @@ const KanbanBoard = () => {
         {/* Right Side: Filters & Actions */}
         <div className="flex items-center gap-3">
           
-          {/* Active Filter Badge (Preserved from old code) */}
+          {/* Active Filter Badge */}
           {filterName && (
             <div className="flex items-center gap-2 bg-purple-100 text-purple-700 px-3 py-2 rounded-lg border border-purple-200 text-sm">
               <span className="font-medium">Filter: {filterName}</span>
@@ -159,13 +199,12 @@ const KanbanBoard = () => {
                   
                   <h4 className="font-bold text-slate-800 mb-3 group-hover:text-purple-600 transition-colors">{req.subject}</h4>
                   
-                  {/* --- UPDATED SECTION: Only show duration if stage is 'Repaired' --- */}
+                  {/* --- DURATION SECTION (Only for Repaired) --- */}
                   {stage === 'Repaired' && req.duration > 0 && (
                     <div className="flex items-center gap-1 text-xs text-slate-600 mb-2 bg-slate-100 p-1 rounded w-fit">
                       <Clock size={12} /> {req.duration} Hours spent
                     </div>
                   )}
-                  {/* --- END UPDATED SECTION --- */}
 
                   {stage === 'Scrap' && (
                     <div className="flex items-center gap-1 text-xs text-red-600 font-bold mb-2 border border-red-200 bg-red-50 p-1 rounded">
