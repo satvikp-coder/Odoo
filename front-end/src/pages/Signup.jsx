@@ -20,13 +20,26 @@ const Signup = () => {
     setError('');
     setLoading(true);
 
+    const trimmedData = {
+      ...formData,
+      name: formData.name.trim(),
+      password: formData.password.trim()
+    };
+
+    if (!trimmedData.name || !trimmedData.password) {
+      setError('Username and password are required');
+      setLoading(false);
+      return;
+    }
+
     try {
       const response = await fetch('http://localhost:3000/api/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(trimmedData)
       });
 
+      // --- MISSING CODE RESTORED HERE ---
       const data = await response.json();
 
       if (response.ok) {
@@ -40,12 +53,9 @@ const Signup = () => {
     } finally {
       setLoading(false);
     }
-  };
-
+  }; 
   return (
-    // CHANGED: bg-slate-50 -> bg-slate-900 (Matches Login)
     <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
-      {/* CHANGED: shadow-sm border -> shadow-2xl (Matches Login depth) */}
       <div className="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md">
         
         <div className="text-center mb-8">
