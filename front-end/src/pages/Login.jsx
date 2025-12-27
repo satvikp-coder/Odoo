@@ -2,11 +2,30 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Lock, User, AlertCircle } from 'lucide-react';
 
-// 1. MOCK DATABASE (Simulating a backend)
-const USERS_DB = [
-  { username: 'admin', password: '123', name: 'Alice Manager', role: 'Manager' },
-  { username: 'tech', password: '123', name: 'Bob Technician', role: 'Technician' }
-];
+const handleLogin = async (e) => {
+  e.preventDefault();
+  setError('');
+  try {
+    const response = await fetch('http://localhost:3000/api/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: username, password: password }) // Backend expects 'name', not 'username'
+    });
+
+    const data = await response.json();
+
+    if (response.ok) {
+      // SUCCESS: Save real user from database
+      localStorage.setItem('currentUser', JSON.stringify(data.user)); 
+      navigate('/');
+      window.location.reload();
+    } else {
+      setError(data.error || 'Login failed');
+    }
+  } catch (err) {
+    setError('Server error. Is the backend running?');
+  }
+};
 
 const Login = () => {
   const navigate = useNavigate();
@@ -103,5 +122,6 @@ const Login = () => {
     </div>
   );
 };
+
 
 export default Login;
