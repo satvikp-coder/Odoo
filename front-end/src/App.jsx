@@ -9,7 +9,7 @@ import RequestForm from './pages/RequestForm';
 import CalendarView from './pages/CalendarView'; 
 import Login from './pages/Login'; 
 import AnalyticsDashboard from './pages/AnalyticsDashboard'; 
-import Signup from './Signup';
+import Signup from './pages/Signup';
 // REMOVED: import AssigneeCard from './components/AssigneeCard'; 
 
 // --- Layout Component ---
