@@ -1,39 +1,42 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Lock, User, AlertCircle } from 'lucide-react';
+import { useNavigate, Link } from 'react-router-dom'; 
+import { Lock, User, AlertCircle, Loader } from 'lucide-react'; 
+
 const Login = () => {
   const navigate = useNavigate();
-  
-  // Form State
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false); 
 
-const handleLogin = async (e) => {
-  e.preventDefault();
-  setError('');
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true); 
 
-  try {
-    const response = await fetch('http://localhost:3000/api/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: username, password: password }) 
-    });
+    try {
+      const response = await fetch('http://localhost:3000/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: username, password: password }) 
+      });
 
-    const data = await response.json();
+      const data = await response.json();
 
-    if (response.ok) {
-      // SUCCESS: Save real user from database
-      localStorage.setItem('currentUser', JSON.stringify(data.user)); 
-      navigate('/');
-      window.location.reload();
-    } else {
-      setError(data.error || 'Login failed');
+      if (response.ok) {
+
+        localStorage.setItem('currentUser', JSON.stringify(data.user)); 
+        navigate('/');
+        window.location.reload();
+      } else {
+        setError(data.error || 'Login failed');
+      }
+    } catch (err) {
+      setError('Server error. Is the backend running?');
+    } finally {
+      setLoading(false);
     }
-  } catch (err) {
-    setError('Server error. Is the backend running?');
-  }
-};
+  };
 
   return (
     <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
@@ -84,16 +87,27 @@ const handleLogin = async (e) => {
 
           <button 
             type="submit"
-            className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded-xl transition shadow-lg mt-4"
+            disabled={loading}
+            className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded-xl transition shadow-lg mt-4 flex justify-center items-center gap-2"
           >
-            Sign In
+            {loading ? <Loader className="animate-spin" size={20}/> : "Sign In"}
           </button>
         </form>
 
-        <div className="mt-6 text-center text-xs text-slate-400">
-          <p>Demo Credentials:</p>
-          <p>Manager: <b>admin / 123</b></p>
-          <p>Technician: <b>tech / 123</b></p>
+        {/* 3. SIGN UP LINK */}
+        <div className="mt-6 text-center text-sm text-slate-500">
+          Don't have an account?{' '}
+          <Link to="/signup" className="text-purple-600 font-bold hover:underline">
+            Create Account
+          </Link>
+        </div>
+
+        {/* 4. UPDATED DEMO CREDS TO MATCH BACKEND SEED */}
+        <div className="mt-6 text-center text-xs text-slate-400 border-t pt-4 border-slate-100">
+          <p className="mb-1 font-semibold uppercase tracking-wider">Demo Credentials:</p>
+          <p>Manager: <b>Mike Wrench / 1234</b></p>
+          <p>Technician: <b>John Grease / 1234</b></p>
+          <p>Admin: <b>Admin / 1234</b></p>
         </div>
 
       </div>
@@ -101,7 +115,4 @@ const handleLogin = async (e) => {
   );
 };
 
-
 export default Login;
-
-
