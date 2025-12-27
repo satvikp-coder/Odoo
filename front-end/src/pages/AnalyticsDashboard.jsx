@@ -1,23 +1,71 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
   PieChart, Pie, Cell, Legend 
 } from 'recharts';
-import { TrendingUp, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { TrendingUp, AlertCircle, CheckCircle2, Loader } from 'lucide-react';
 
 const AnalyticsDashboard = () => {
-  // Mock Data
-  const statusData = [
-    { name: 'In Progress', value: 3, color: '#f59e0b' }, // Amber
-    { name: 'New', value: 2, color: '#ef4444' },         // Red
-    { name: 'Repaired', value: 4, color: '#22c55e' },    // Green
-  ];
+  // State for Chart Data
+  const [statusData, setStatusData] = useState([]);
+  const [workloadData, setWorkloadData] = useState([]);
+  
+  const [kpis, setKpis] = useState({ total: 0, pending: 0, completed: 0 });
+  
+  const [loading, setLoading] = useState(true);
 
-  const workloadData = [
-    { name: 'Mechanics', tasks: 5 },
-    { name: 'IT Support', tasks: 2 },
-    { name: 'Electricians', tasks: 3 },
-  ];
+  useEffect(() => {
+    const fetchAnalytics = async () => {
+      try {
+        const response = await fetch('http://localhost:3000/api/requests');
+        const data = await response.json();
+
+        const total = data.length;
+        const pending = data.filter(r => ['New', 'In Progress'].includes(r.stage)).length;
+        const completed = data.filter(r => r.stage === 'Repaired').length;
+
+        setKpis({ total, pending, completed });
+
+        const newCount = data.filter(r => r.stage === 'New').length;
+        const progressCount = data.filter(r => r.stage === 'In Progress').length;
+        const repairedCount = data.filter(r => r.stage === 'Repaired').length;
+
+        setStatusData([
+          { name: 'In Progress', value: progressCount, color: '#f59e0b' }, // Amber
+          { name: 'New', value: newCount, color: '#ef4444' },             // Red
+          { name: 'Repaired', value: repairedCount, color: '#22c55e' },    // Green
+        ]);
+
+        const teamMap = { 1: 'Mechanics', 2: 'IT Support', 3: 'Electricians' };
+        
+        const workload = { 'Mechanics': 0, 'IT Support': 0, 'Electricians': 0 };
+
+        data.forEach(req => {
+      
+          const teamName = req.maintenance_team ? req.maintenance_team.name : teamMap[req.maintenanceTeamId];
+          if (workload[teamName] !== undefined) {
+            workload[teamName]++;
+          }
+        });
+
+        const formattedWorkload = Object.keys(workload).map(key => ({
+          name: key,
+          tasks: workload[key]
+        }));
+
+        setWorkloadData(formattedWorkload);
+        setLoading(false);
+
+      } catch (error) {
+        console.error("Error fetching analytics:", error);
+        setLoading(false);
+      }
+    };
+
+    fetchAnalytics();
+  }, []);
+
+  if (loading) return <div className="p-10 flex gap-2 items-center text-slate-500"><Loader className="animate-spin"/> Loading Analytics...</div>;
 
   return (
     <div className="p-6">
@@ -34,7 +82,7 @@ const AnalyticsDashboard = () => {
           </div>
           <div>
             <p className="text-xs text-slate-500 font-bold uppercase">Total Requests</p>
-            <h3 className="text-3xl font-bold text-slate-800">9</h3>
+            <h3 className="text-3xl font-bold text-slate-800">{kpis.total}</h3>
           </div>
         </div>
 
@@ -44,7 +92,7 @@ const AnalyticsDashboard = () => {
           </div>
           <div>
             <p className="text-xs text-slate-500 font-bold uppercase">Pending</p>
-            <h3 className="text-3xl font-bold text-slate-800">3</h3>
+            <h3 className="text-3xl font-bold text-slate-800">{kpis.pending}</h3>
           </div>
         </div>
 
@@ -54,7 +102,7 @@ const AnalyticsDashboard = () => {
           </div>
           <div>
             <p className="text-xs text-slate-500 font-bold uppercase">Completed</p>
-            <h3 className="text-3xl font-bold text-slate-800">4</h3>
+            <h3 className="text-3xl font-bold text-slate-800">{kpis.completed}</h3>
           </div>
         </div>
       </div>
@@ -74,7 +122,7 @@ const AnalyticsDashboard = () => {
                   axisLine={false} 
                   tickLine={false} 
                   tick={{ fill: '#64748b', fontSize: 12 }} 
-                  dy={10} // Pushes the text down slightly for better spacing
+                  dy={10}
                 />
                 <YAxis 
                   axisLine={false} 
@@ -100,7 +148,7 @@ const AnalyticsDashboard = () => {
                 <Pie
                   data={statusData}
                   cx="50%"
-                  cy="45%" // Moved chart up slightly to make room for legend
+                  cy="45%" 
                   innerRadius={60}
                   outerRadius={80}
                   paddingAngle={5}
@@ -117,7 +165,7 @@ const AnalyticsDashboard = () => {
                   verticalAlign="bottom" 
                   height={36} 
                   iconType="circle"
-                  wrapperStyle={{ paddingTop: '20px' }} // Adds breathing room between chart and legend
+                  wrapperStyle={{ paddingTop: '20px' }} 
                 />
               </PieChart>
             </ResponsiveContainer>
