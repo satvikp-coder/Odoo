@@ -1,0 +1,13 @@
+const express = require('express');
+const router = express.Router();
+const equipmentController = require('../controllers/equipmentController');
+const requestController = require('../controllers/requestController');
+const loginController = require('../controllers/loginController');
+router.get('/equipment', equipmentController.getAllEquipment);
+router.get('/equipment/:id', equipmentController.getEquipmentById);
+router.get('/requests', requestController.getAllRequests);
+router.post('/requests', requestController.createRequest);
+router.put('/requests/:id', requestController.updateRequest);
+router.post('/login', loginController.login);
+router.post('/signup', loginController.signup);
+module.exports = router;
