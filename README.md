@@ -34,7 +34,7 @@ In manufacturing and IT, equipment downtime costs money. Tracking repairs via sp
 **Backend:**
 * Node.js & Express
 * Sequelize ORM
-* SQLite (Database)
+* MySQL (Database)
 
 ---
 
