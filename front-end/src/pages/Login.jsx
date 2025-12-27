@@ -1,10 +1,18 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Lock, User, AlertCircle } from 'lucide-react';
+const Login = () => {
+  const navigate = useNavigate();
+  
+  // Form State
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
 
 const handleLogin = async (e) => {
   e.preventDefault();
   setError('');
+
   try {
     const response = await fetch('http://localhost:3000/api/login', {
       method: 'POST',
@@ -26,36 +34,6 @@ const handleLogin = async (e) => {
     setError('Server error. Is the backend running?');
   }
 };
-
-const Login = () => {
-  const navigate = useNavigate();
-  
-  // Form State
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-
-  const handleLogin = (e) => {
-    e.preventDefault();
-    setError(''); // Clear previous errors
-
-    // 2. CHECK CREDENTIALS
-    const foundUser = USERS_DB.find(
-      u => u.username === username && u.password === password
-    );
-
-    if (foundUser) {
-      // 3. SUCCESS: Save user to storage
-      localStorage.setItem('currentUser', JSON.stringify(foundUser));
-      
-      // Redirect
-      navigate('/');
-      window.location.reload(); // Refresh to update Sidebar
-    } else {
-      // 4. FAIL: Show error
-      setError('Invalid Username or Password');
-    }
-  };
 
   return (
     <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
@@ -125,4 +103,5 @@ const Login = () => {
 
 
 export default Login;
+
 
