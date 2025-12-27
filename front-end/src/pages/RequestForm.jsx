@@ -1,64 +1,107 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Save, AlertCircle } from 'lucide-react';
-
-// 1. THE FAKE DATABASE (Mock Data)
-// This simulates fetching equipment details from a server
-const EQUIPMENT_DB = [
-  { id: 1, name: "Canon Printer X1", category: "Electronics", team: "IT Support" },
-  { id: 2, name: "Hydraulic Press 500T", category: "Heavy Machinery", team: "Mechanics" },
-  { id: 3, name: "Office AC Unit #4", category: "HVAC", team: "Facility Maint." },
-  { id: 4, name: "Dell Server Rack", category: "Electronics", team: "IT Support" },
-  { id: 5, name: "Conveyor Belt Motor", category: "Heavy Machinery", team: "Mechanics" },
-];
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Save, Loader, Calendar } from 'lucide-react';
 
 const RequestForm = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const dateParam = searchParams.get('date');
+  const typeParam = searchParams.get('type');
 
-  // 2. FORM STATE
+  const [equipmentList, setEquipmentList] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+
   const [formData, setFormData] = useState({
-    title: '',
-    equipment: '',
+    title: typeParam === 'preventive' ? 'Scheduled Maintenance' : '', 
+    equipmentId: '',
     priority: 'Medium',
     description: '',
-    // These will be auto-filled:
     category: '',
     team: ''
   });
 
-  // 3. THE AUTO-FILL LOGIC
+  useEffect(() => {
+    fetch('http://localhost:3000/api/equipment')
+      .then(res => res.json())
+      .then(data => {
+        setEquipmentList(data);
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error("Failed to load equipment", err);
+        setLoading(false);
+      });
+  }, []);
+
   const handleEquipmentChange = (e) => {
-    const selectedEqName = e.target.value;
+    const selectedId = e.target.value;
     
-    // Find the equipment details in our "Database"
-    const eqDetails = EQUIPMENT_DB.find(item => item.name === selectedEqName);
+    const eqDetails = equipmentList.find(item => item.id == selectedId);
 
     if (eqDetails) {
-      // Auto-fill the other fields!
+      const teamName = eqDetails.maintenance_team 
+        ? eqDetails.maintenance_team.name 
+        : (eqDetails.maintenanceTeamId === 1 ? 'Mechanics' : eqDetails.maintenanceTeamId === 2 ? 'IT Support' : 'Electricians');
+      const categoryMap = { 'Mechanics': 'Heavy Machinery', 'IT Support': 'Electronics', 'Electricians': 'Power Systems' };
+
       setFormData(prev => ({
         ...prev,
-        equipment: selectedEqName,
-        category: eqDetails.category,
-        team: eqDetails.team
+        equipmentId: selectedId,
+        team: teamName,
+        category: categoryMap[teamName] || 'General Asset'
       }));
     } else {
-      setFormData(prev => ({ ...prev, equipment: selectedEqName }));
+      setFormData(prev => ({ ...prev, equipmentId: selectedId, team: '', category: '' }));
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // In a real app, this would send data to backend
-    // For now, we just go back to the board
-    alert("Request Created! (Auto-assigned to " + formData.team + ")");
-    navigate('/');
+    setSubmitting(true);
+
+    const payload = {
+      subject: formData.title,
+      type: typeParam === 'preventive' ? 'Preventive' : 'Corrective',
+      equipment_id: formData.equipmentId,
+      scheduled_date: dateParam ? dateParam : undefined, 
+    };
+
+    try {
+      const response = await fetch('http://localhost:3000/api/requests', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (response.ok) {
+        navigate('/');
+      } else {
+        alert("Failed to submit request. Please try again.");
+      }
+    } catch (error) {
+      console.error("Error submitting:", error);
+      alert("Server error.");
+    } finally {
+      setSubmitting(false);
+    }
   };
+
+  if (loading) return <div className="p-10 flex gap-2 items-center text-slate-500"><Loader className="animate-spin"/> Loading Equipment List...</div>;
 
   return (
     <div className="max-w-2xl mx-auto">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-slate-800">New Maintenance Request</h1>
         <p className="text-slate-500">Select equipment to auto-route this ticket.</p>
+        
+        {/* Visual Indicator if coming from Calendar */}
+        {dateParam && (
+          <div className="mt-3 inline-flex items-center gap-2 bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-sm font-bold border border-purple-200">
+            <Calendar size={16} />
+            Scheduled for: {dateParam}
+          </div>
+        )}
       </div>
 
       <form onSubmit={handleSubmit} className="bg-white p-8 rounded-xl shadow-sm border border-slate-200 space-y-6">
@@ -76,18 +119,18 @@ const RequestForm = () => {
           />
         </div>
 
-        {/* 🧠 SMART DROPDOWN (Auto-Fill Trigger) */}
+        {/* SMART DROPDOWN (Auto-Fill Trigger) */}
         <div>
           <label className="block text-sm font-bold text-slate-700 mb-2">Select Equipment</label>
           <select 
             required
             className="w-full p-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none bg-white"
-            value={formData.equipment}
+            value={formData.equipmentId}
             onChange={handleEquipmentChange}
           >
             <option value="">-- Choose Equipment --</option>
-            {EQUIPMENT_DB.map(eq => (
-              <option key={eq.id} value={eq.name}>{eq.name}</option>
+            {equipmentList.map(eq => (
+              <option key={eq.id} value={eq.id}>{eq.name}</option>
             ))}
           </select>
         </div>
@@ -138,15 +181,17 @@ const RequestForm = () => {
             type="button"
             onClick={() => navigate('/')}
             className="px-6 py-2 text-slate-600 font-bold hover:bg-slate-100 rounded-lg transition"
+            disabled={submitting}
           >
             Cancel
           </button>
           <button 
             type="submit"
-            className="flex items-center gap-2 px-6 py-2 bg-purple-600 text-white font-bold rounded-lg hover:bg-purple-700 transition shadow-lg hover:shadow-xl"
+            disabled={submitting}
+            className="flex items-center gap-2 px-6 py-2 bg-purple-600 text-white font-bold rounded-lg hover:bg-purple-700 transition shadow-lg hover:shadow-xl disabled:opacity-50"
           >
-            <Save size={18} />
-            Submit Request
+            {submitting ? <Loader className="animate-spin" size={18}/> : <Save size={18} />}
+            {submitting ? 'Submitting...' : 'Submit Request'}
           </button>
         </div>
 
