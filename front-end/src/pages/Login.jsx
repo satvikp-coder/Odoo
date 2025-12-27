@@ -9,7 +9,7 @@ const handleLogin = async (e) => {
     const response = await fetch('http://localhost:3000/api/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: username, password: password }) // Backend expects 'name', not 'username'
+      body: JSON.stringify({ name: username, password: password }) 
     });
 
     const data = await response.json();
@@ -125,3 +125,4 @@ const Login = () => {
 
 
 export default Login;
+
